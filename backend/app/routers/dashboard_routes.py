@@ -1,5 +1,4 @@
-﻿@"
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..auth_utils import require_role, get_current_user
@@ -195,4 +194,3 @@ def student_reports(
         })
 
     return report
-"@ | Set-Content -Path "backend\app\routers\dashboard_routes.py" -Encoding UTF8
