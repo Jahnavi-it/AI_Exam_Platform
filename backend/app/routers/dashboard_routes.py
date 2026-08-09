@@ -1,9 +1,10 @@
-﻿from fastapi import APIRouter, Depends
+﻿@"
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..auth_utils import require_role, get_current_user
 from ..database import get_db
-from ..models import RoleEnum, User, Exam, QuestionBank, ExamSession, ExamQuestion, Result, SessionStatusEnum
+from ..models import RoleEnum, User, Exam, QuestionBank, ExamSession, ExamQuestion, Result, SessionStatusEnum, ReviewStatusEnum
 
 router = APIRouter(prefix="/api", tags=["Dashboards"])
 
@@ -108,7 +109,7 @@ def get_me(current_user: User = Depends(get_current_user)):
     }
 
 
-# Admin: per-student performance report
+# Admin: per-student performance report (exam-wise marks + pass/fail)
 @router.get("/admin/reports/students")
 def student_reports(
     current_user: User = Depends(require_role([RoleEnum.admin])),
@@ -131,6 +132,7 @@ def student_reports(
         percentages = []
         passed_count = 0
         failed_count = 0
+        exam_rows = []
 
         for session in completed_sessions:
             result = (
@@ -154,11 +156,30 @@ def student_reports(
             if max_marks > 0:
                 percentages.append((result.marks / max_marks) * 100)
 
-            if exam and exam.pass_marks is not None:
-                if result.marks >= exam.pass_marks:
-                    passed_count += 1
-                else:
-                    failed_count += 1
+            passed = None
+            if result.published:
+                if session.review_status == ReviewStatusEnum.rejected:
+                    passed = False
+                elif exam and exam.pass_marks is not None:
+                    passed = result.marks >= exam.pass_marks
+                elif session.review_status == ReviewStatusEnum.approved:
+                    passed = True
+
+            if passed is True:
+                passed_count += 1
+            elif passed is False:
+                failed_count += 1
+
+            exam_rows.append({
+                "session_id": session.session_id,
+                "exam_id": session.exam_id,
+                "exam_title": exam.title if exam else "Unknown",
+                "marks": result.marks,
+                "max_marks": max_marks,
+                "review_status": session.review_status,
+                "published": result.published,
+                "passed": passed,
+            })
 
         average_score = round(sum(percentages) / len(percentages), 1) if percentages else 0.0
 
@@ -170,6 +191,8 @@ def student_reports(
             "average_score": average_score,
             "passed_count": passed_count,
             "failed_count": failed_count,
+            "exams": exam_rows,
         })
 
     return report
+"@ | Set-Content -Path "backend\app\routers\dashboard_routes.py" -Encoding UTF8

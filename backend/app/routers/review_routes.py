@@ -9,6 +9,7 @@ from ..database import get_db
 from ..auth_utils import require_role
 from ..models import RoleEnum, User, SessionStatusEnum, ReviewStatusEnum
 from ..schemas import PendingReviewSessionOut, LiveSessionOut, ReviewActionResponse
+from . import grading_routes
 
 router = APIRouter(prefix="/api/review", tags=["Examiner Review"])
 
@@ -122,6 +123,15 @@ def approve_session(
     s.reviewed_by = current_user.user_id
     s.reviewed_at = datetime.utcnow()
     db.commit()
+
+    # Approving finalizes the attempt for the student -- publish the
+    # result too, so it shows up immediately without a separate step.
+    result_row = grading_routes._recompute_result_marks(db, session_id)
+    result_row.published = True
+    result_row.published_at = datetime.utcnow()
+    result_row.final_examiner_score = result_row.marks
+    db.commit()
+
     return ReviewActionResponse(session_id=session_id, review_status=s.review_status, message="Approved")
 
 @router.post("/{session_id}/reject", response_model=ReviewActionResponse)
@@ -137,4 +147,13 @@ def reject_session(
     s.reviewed_by = current_user.user_id
     s.reviewed_at = datetime.utcnow()
     db.commit()
+
+    # Reject is also a final decision -- publish so the student sees the
+    # Failed verdict right away instead of waiting on a separate publish.
+    result_row = grading_routes._recompute_result_marks(db, session_id)
+    result_row.published = True
+    result_row.published_at = datetime.utcnow()
+    result_row.final_examiner_score = result_row.marks
+    db.commit()
+
     return ReviewActionResponse(session_id=session_id, review_status=s.review_status, message="Rejected")

@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import { useAuth, useRequireRole } from "../../../context/AuthContext";
 import { getStudentReports } from "../../../lib/api";
 
+function verdictBadge(exam) {
+  if (!exam.published) {
+    return <span style={{ color: "#9ca3af" }}>Not Published</span>;
+  }
+  if (exam.passed === true) {
+    return <span style={{ color: "#059669", fontWeight: 600 }}>Passed</span>;
+  }
+  if (exam.passed === false) {
+    return <span style={{ color: "#dc2626", fontWeight: 600 }}>Failed</span>;
+  }
+  return <span style={{ color: "#b45309", fontWeight: 600 }}>Awaiting Review</span>;
+}
+
 export default function AdminReportsPage() {
   const { user, loading } = useRequireRole("admin");
   const { token } = useAuth();
@@ -14,6 +27,7 @@ export default function AdminReportsPage() {
   const [error, setError] = useState("");
   const [fetching, setFetching] = useState(true);
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
     if (!token) return;
@@ -49,6 +63,8 @@ export default function AdminReportsPage() {
         ) / 10
       : 0;
   const totalPassed = rows.reduce((sum, r) => sum + r.passed_count, 0);
+
+  const toggle = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <div className="dashboard-wrapper">
@@ -111,6 +127,7 @@ export default function AdminReportsPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Exams Taken</th>
@@ -121,18 +138,62 @@ export default function AdminReportsPage() {
             </thead>
             <tbody>
               {filteredRows.map((r) => (
-                <tr key={r.student_id}>
-                  <td>{r.name}</td>
-                  <td>{r.email}</td>
-                  <td>{r.exams_taken}</td>
-                  <td>{r.average_score}%</td>
-                  <td style={{ color: "#059669", fontWeight: 600 }}>{r.passed_count}</td>
-                  <td style={{ color: "#dc2626", fontWeight: 600 }}>{r.failed_count}</td>
-                </tr>
+                <>
+                  <tr key={r.student_id}>
+                    <td>
+                      {r.exams && r.exams.length > 0 && (
+                        <button
+                          className="delete-btn"
+                          style={{ color: "#2563eb" }}
+                          onClick={() => toggle(r.student_id)}
+                        >
+                          {expanded[r.student_id] ? "▾" : "▸"}
+                        </button>
+                      )}
+                    </td>
+                    <td>{r.name}</td>
+                    <td>{r.email}</td>
+                    <td>{r.exams_taken}</td>
+                    <td>{r.average_score}%</td>
+                    <td style={{ color: "#059669", fontWeight: 600 }}>{r.passed_count}</td>
+                    <td style={{ color: "#dc2626", fontWeight: 600 }}>{r.failed_count}</td>
+                  </tr>
+
+                  {expanded[r.student_id] && r.exams && r.exams.length > 0 && (
+                    <tr>
+                      <td></td>
+                      <td colSpan={6}>
+                        <table className="data-table" style={{ margin: "6px 0 10px" }}>
+                          <thead>
+                            <tr>
+                              <th>Exam</th>
+                              <th>Marks</th>
+                              <th>Percentage</th>
+                              <th>Result</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {r.exams.map((e) => {
+                              const pct = e.max_marks > 0 ? Math.round((e.marks / e.max_marks) * 1000) / 10 : 0;
+                              return (
+                                <tr key={e.session_id}>
+                                  <td>{e.exam_title}</td>
+                                  <td>{e.marks} / {e.max_marks}</td>
+                                  <td>{pct}%</td>
+                                  <td>{verdictBadge(e)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ color: "#9ca3af" }}>No students found.</td>
+                  <td colSpan={7} style={{ color: "#9ca3af" }}>No students found.</td>
                 </tr>
               )}
             </tbody>
