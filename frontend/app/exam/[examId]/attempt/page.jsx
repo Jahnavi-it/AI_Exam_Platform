@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -35,21 +35,21 @@ const STATUS_STYLE = {
   "marked-answered": { background: "#7c3aed", color: "#fff", border: "1px solid #7c3aed" },
 };
 
-const STATUS_LABEL = {
-  "not-visited": "Not Visited",
-  visited: "Not Answered",
-  answered: "Answered",
-  marked: "Marked for Review",
-  "marked-answered": "Answered & Marked",
-};
-
 export default function AttemptExamPage() {
   const { user, loading } = useRequireRole("student");
   const { token } = useAuth();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const examId = params.examId;
+
+  const STATUS_LABEL = {
+    "not-visited": t("not_visited_label"),
+    visited: t("not_answered_status"),
+    answered: t("answered_status"),
+    marked: t("marked_status"),
+    "marked-answered": t("answered_marked_status"),
+  };
 
   const [state, setState] = useState(null); // full StartExamResponse
   const [answers, setAnswers] = useState({}); // question_id -> value
@@ -126,8 +126,8 @@ export default function AttemptExamPage() {
       const unanswered = state.questions.filter((q) => !hasValue(answers[q.question_id])).length;
       const confirmMsg =
         unanswered > 0
-          ? `You have ${unanswered} unanswered question(s). Submit the exam now? You cannot change your answers after this.`
-          : "Submit the exam now? You cannot change your answers after this.";
+          ? `${t("not_answered")}: ${unanswered}. ${t("are_you_sure")}`
+          : t("are_you_sure");
       const ok = window.confirm(confirmMsg);
       if (!ok) return;
     }
@@ -265,7 +265,7 @@ export default function AttemptExamPage() {
         }
       })
       .catch((err) => setError(err.message));
-  }, [token, examId]);
+  }, [token, examId, lang]);
 
   // ---- Countdown timer ----
   useEffect(() => {
@@ -312,7 +312,7 @@ export default function AttemptExamPage() {
   if (!state) {
     return (
       <div className="dashboard-wrapper">
-        <div className="card">Loading exam...</div>
+        <div className="card">{t("loading_exam")}</div>
       </div>
     );
   }
@@ -324,7 +324,7 @@ export default function AttemptExamPage() {
     return (
       <div className="dashboard-wrapper">
         <div className="card">
-          <p style={{ color: "#9ca3af" }}>No questions have been added for this exam yet.</p>
+          <p style={{ color: "#9ca3af" }}>{t("no_questions_added_yet")}</p>
         </div>
       </div>
     );
@@ -379,10 +379,10 @@ export default function AttemptExamPage() {
     <div className="dashboard-wrapper">
       <div className="dashboard-header">
         <div>
-          <span className="badge">Student</span>
+          <span className="badge">{t("role_student")}</span>
           <h1 style={{ margin: "8px 0 0" }}>{state.exam.title}</h1>
           <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: "13px" }}>
-            {state.exam.subject} â€¢ {total} question(s) â€¢ Negative marks: {state.exam.negative_marks}
+            {state.exam.subject} • {total} {t("question")}(s) • {t("negative_marks_label")}: {state.exam.negative_marks}
           </p>
         </div>
         <div
@@ -413,7 +413,7 @@ export default function AttemptExamPage() {
             fontWeight: 600,
           }}
         >
-          âš  Proctoring warnings: {violations} / {MAX_VIOLATIONS}. The exam will auto-submit if this limit is reached.
+          ⚠ {t("proctoring_warnings_label")}: {violations} / {MAX_VIOLATIONS}
         </div>
       )}
 
@@ -450,11 +450,11 @@ export default function AttemptExamPage() {
             background: "rgba(0,0,0,0.55)",
           }}
         >
-          {cameraStatus === "ready" && "Camera OK"}
-          {cameraStatus === "initializing" && "Starting camera..."}
-          {cameraStatus === "no-face" && "No face detected"}
-          {cameraStatus === "multiple-faces" && "Multiple faces!"}
-          {cameraStatus === "denied" && "Camera blocked"}
+          {cameraStatus === "ready" && t("camera_ok")}
+          {cameraStatus === "initializing" && t("starting_camera")}
+          {cameraStatus === "no-face" && t("no_face_detected")}
+          {cameraStatus === "multiple-faces" && t("multiple_faces_warn")}
+          {cameraStatus === "denied" && t("camera_blocked")}
         </div>
       </div>
 
@@ -465,10 +465,10 @@ export default function AttemptExamPage() {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
             <strong>
-              Q{currentIndex + 1} of {total}. {q.question_text}
+              Q{currentIndex + 1} {t("q_of_label")} {total}. {q.question_text}
             </strong>
             <span style={{ color: "#6b7280", fontSize: "13px", whiteSpace: "nowrap", marginLeft: "12px" }}>
-              {q.marks} mark(s){savingId === q.question_id ? " â€¢ saving..." : ""}
+              {q.marks} {t("marks_unit")}{savingId === q.question_id ? ` • ${t("saving_suffix")}` : ""}
             </span>
           </div>
 
@@ -516,7 +516,7 @@ export default function AttemptExamPage() {
             <input
               value={answers[q.question_id] || ""}
               onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-              placeholder="Type your answer"
+              placeholder={t("type_your_answer")}
             />
           )}
 
@@ -526,7 +526,7 @@ export default function AttemptExamPage() {
               style={{ width: "100%", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px" }}
               value={answers[q.question_id] || ""}
               onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-              placeholder="Type your answer"
+              placeholder={t("type_your_answer")}
             />
           )}
 
@@ -542,7 +542,7 @@ export default function AttemptExamPage() {
                 style={{ marginBottom: "10px" }}
               />
               <p style={{ margin: "0 0 10px", fontSize: "13px", color: "#6b7280" }}>
-                Upload a photo of your handwritten answer (PNG/JPG/WEBP, up to 10MB).
+                {t("upload_image_hint")}
               </p>
 
               {imageUploads[q.question_id]?.preview && (
@@ -553,10 +553,10 @@ export default function AttemptExamPage() {
                     style={{ maxWidth: "260px", maxHeight: "260px", borderRadius: "8px", border: "1px solid #d1d5db", display: "block" }}
                   />
                   {imageUploads[q.question_id].uploading && (
-                    <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#6b7280" }}>Uploading…</p>
+                    <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#6b7280" }}>{t("uploading_label")}</p>
                   )}
                   {!imageUploads[q.question_id].uploading && !imageUploads[q.question_id].error && (
-                    <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#16a34a" }}>Uploaded ✓</p>
+                    <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#16a34a" }}>{t("uploaded_ok")}</p>
                   )}
                   {imageUploads[q.question_id].error && (
                     <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#dc2626" }}>
@@ -575,28 +575,28 @@ export default function AttemptExamPage() {
               style={{ width: "auto", padding: "10px 20px", background: "#eab308" }}
               onClick={handleMarkForReviewAndNext}
             >
-              Mark for Review &amp; Next
+              {t("mark_for_review_next")}
             </button>
             <button
               className="btn-primary"
               style={{ width: "auto", padding: "10px 20px" }}
               onClick={handleSaveAndContinue}
             >
-              Save &amp; Continue
+              {t("save_and_continue")}
             </button>
             <button
               style={{ width: "auto", padding: "10px 20px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontWeight: 600 }}
               onClick={handlePrevious}
               disabled={currentIndex === 0}
             >
-              Previous
+              {t("previous")}
             </button>
             <button
               style={{ width: "auto", padding: "10px 20px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontWeight: 600 }}
               onClick={handleNext}
               disabled={currentIndex === total - 1}
             >
-              Next
+              {t("next")}
             </button>
             <button
               className="btn-primary"
@@ -604,7 +604,7 @@ export default function AttemptExamPage() {
               onClick={() => handleSubmit(false)}
               disabled={submitting}
             >
-              {submitting ? "Submitting..." : "Submit Exam"}
+              {submitting ? t("submitting") : t("submit_exam")}
             </button>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function AttemptExamPage() {
         {/* ---- Palette sidebar ---- */}
         <div className="card">
           <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#6b7280" }}>
-            Answered: <strong>{answeredCount}</strong> / {total} &nbsp;â€¢&nbsp; Marked: <strong>{markedCount}</strong>
+            {t("answered_label")}: <strong>{answeredCount}</strong> / {total} &nbsp;•&nbsp; {t("marked_label")}: <strong>{markedCount}</strong>
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px", marginBottom: "16px" }}>
             {questions.map((qq, idx) => {
@@ -664,14 +664,13 @@ export default function AttemptExamPage() {
           }}
         >
           <div className="card" style={{ maxWidth: "420px", textAlign: "center" }}>
-            <h2 style={{ margin: "0 0 12px", color: "#b91c1c" }}>âš  Proctoring Warning</h2>
-            <p style={{ margin: "0 0 8px", color: "#374151" }}>{violationMessage} This has been recorded.</p>
+            <h2 style={{ margin: "0 0 12px", color: "#b91c1c" }}>⚠ {t("proctoring_warning_title")}</h2>
+            <p style={{ margin: "0 0 8px", color: "#374151" }}>{violationMessage} {t("recorded_suffix")}</p>
             <p style={{ margin: "0 0 20px", color: "#6b7280", fontSize: "13px" }}>
-              Warning {violations} of {MAX_VIOLATIONS}. If this limit is reached, your exam will be submitted
-              automatically.
+              {t("warning_of_label")} {violations} / {MAX_VIOLATIONS}
             </p>
             <button className="btn-primary" style={{ width: "auto", padding: "10px 28px" }} onClick={() => setShowTabWarning(false)}>
-              I Understand, Continue Exam
+              {t("understand_continue")}
             </button>
           </div>
         </div>
@@ -679,4 +678,3 @@ export default function AttemptExamPage() {
     </div>
   );
 }
-
