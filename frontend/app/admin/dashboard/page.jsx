@@ -245,6 +245,23 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      <div className="hero-banner">
+        <p className="hero-eyebrow">{t("role_admin")} Dashboard</p>
+        <h1>{t("welcome")}, {user.name} 👋</h1>
+        <p>Platform-wide controls for users, exams, and proctoring oversight.</p>
+        <div className="hero-actions">
+          <button
+            className="btn-primary"
+            onClick={() => document.getElementById("configure-exam")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            + {t("create_exam_btn")}
+          </button>
+          <button className="btn-secondary" onClick={() => router.push("/admin/reports")}>
+            {t("reports_btn")}
+          </button>
+        </div>
+      </div>
+
       <div className="card">
         <p>{message}</p>
       </div>
@@ -268,6 +285,9 @@ export default function AdminDashboardPage() {
           <div>
             <div className="stat-label">{t("total_exams")}</div>
             <div className="stat-value">{stats ? stats.total_exams : "—"}</div>
+            <div className="stat-sub">
+              {stats ? `${stats.total_questions} questions in bank` : ""}
+            </div>
           </div>
         </div>
 
@@ -284,6 +304,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="stat-label">{t("live_sessions_now")}</div>
             <div className="stat-value">{liveSessions.length}</div>
+            <div className="stat-sub">{pendingReviews.length} awaiting your review</div>
           </div>
         </div>
 
@@ -292,12 +313,173 @@ export default function AdminDashboardPage() {
           <div>
             <div className="stat-label">{t("average_score")}</div>
             <div className="stat-value">{stats ? `${stats.average_score}%` : "—"}</div>
+            <div className="stat-sub">Across all finalized exams</div>
           </div>
         </div>
       </div>
 
-      {/* ---- Live Now (Milestone 2) ---- */}
       <div className="card section-gap">
+        <p className="quick-access-title">Quick Access</p>
+        <div className="quick-access-grid">
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("configure-exam")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-blue">🗂️</div>
+            <div>
+              <div className="quick-access-title-text">{t("configure_exam_title")}</div>
+              <div className="quick-access-desc">Create exams, attach questions</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("live-now")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-red">📡</div>
+            <div>
+              <div className="quick-access-title-text">{t("live_now")}</div>
+              <div className="quick-access-desc">Monitor students taking exams</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("pending-review")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-amber">🕓</div>
+            <div>
+              <div className="quick-access-title-text">{t("pending_reviews_title")}</div>
+              <div className="quick-access-desc">Approve or reject submissions</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a className="quick-access-card" onClick={() => router.push("/admin/reports")}>
+            <div className="stat-icon stat-icon-purple">📈</div>
+            <div>
+              <div className="quick-access-title-text">{t("reports_btn")}</div>
+              <div className="quick-access-desc">Per-student exam performance</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="overview-grid section-gap">
+        <div className="card">
+          <h2 className="section-title">Exam Overview</h2>
+          {(() => {
+            const now = new Date();
+            const activeNow = exams.filter(
+              (ex) => new Date(ex.start_time) <= now && now <= new Date(ex.end_time)
+            ).length;
+            const upcoming = exams.filter((ex) => new Date(ex.start_time) > now).length;
+
+            const bySubject = {};
+            exams.forEach((ex) => {
+              bySubject[ex.subject] = (bySubject[ex.subject] || 0) + 1;
+            });
+            const subjectRows = Object.entries(bySubject).sort((a, b) => b[1] - a[1]);
+            const maxCount = subjectRows.length ? subjectRows[0][1] : 1;
+            const barColors = ["#7c3aed", "#0ea5e9", "#ec4899", "#f59e0b", "#10b981", "#6366f1"];
+
+            return (
+              <>
+                <div className="mini-stat-row">
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Active Now</div>
+                    <div className="mini-stat-value">{activeNow}</div>
+                  </div>
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Upcoming</div>
+                    <div className="mini-stat-value">{upcoming}</div>
+                  </div>
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Total</div>
+                    <div className="mini-stat-value">{exams.length}</div>
+                  </div>
+                </div>
+
+                {subjectRows.length > 0 && (
+                  <>
+                    <div className="mini-stat-label" style={{ marginBottom: "10px" }}>Exams by subject</div>
+                    {subjectRows.map(([subject, count], i) => (
+                      <div className="bar-row" key={subject}>
+                        <div className="bar-row-label">{subject}</div>
+                        <div className="bar-track">
+                          <div
+                            className="bar-fill"
+                            style={{
+                              width: `${(count / maxCount) * 100}%`,
+                              background: barColors[i % barColors.length],
+                            }}
+                          />
+                        </div>
+                        <div className="bar-row-count">{count}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                <div style={{ marginTop: "18px" }}>
+                  {exams.slice(0, 5).map((ex) => {
+                    const start = new Date(ex.start_time);
+                    const end = new Date(ex.end_time);
+                    let pillClass = "pill-gray";
+                    let pillText = "Ended";
+                    if (start <= now && now <= end) {
+                      pillClass = "pill-green";
+                      pillText = "Active";
+                    } else if (start > now) {
+                      pillClass = "pill-blue";
+                      pillText = "Upcoming";
+                    }
+                    return (
+                      <div className="exam-list-item" key={ex.exam_id}>
+                        <div>
+                          <div className="title">{ex.title}</div>
+                          <div className="subtitle">{ex.subject}</div>
+                        </div>
+                        <span className={`pill ${pillClass}`}>{pillText}</span>
+                      </div>
+                    );
+                  })}
+                  {exams.length === 0 && <p style={{ color: "#9ca3af", fontSize: "13px" }}>{t("no_exams_configured")}</p>}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        <div className="card">
+          <div className="section-title-row">
+            <h2 className="section-title">Needs Your Review</h2>
+            <button className="link-btn" onClick={() => document.getElementById("pending-review")?.scrollIntoView({ behavior: "smooth" })}>
+              View all
+            </button>
+          </div>
+          {pendingReviews.slice(0, 6).map((s) => (
+            <div className="submission-row" key={s.session_id}>
+              <div>
+                <div className="student-name">{s.student_name}</div>
+              </div>
+              <div>
+                <div>{s.exam_title}</div>
+              </div>
+              <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                {s.end_time ? new Date(s.end_time).toLocaleString() : "—"}
+              </div>
+              <span className="pill pill-amber">Pending</span>
+            </div>
+          ))}
+          {pendingReviews.length === 0 && (
+            <p style={{ color: "#9ca3af", fontSize: "13px" }}>{t("no_pending_reviews")}</p>
+          )}
+        </div>
+      </div>
+
+      {/* ---- Live Now (Milestone 2) ---- */}
+      <div className="card section-gap" id="live-now">
         <h2 className="section-title">🔴 {t("live_now")} ({liveSessions.length})</h2>
         {reviewError && <div className="error-text">{reviewError}</div>}
         <table className="data-table">
@@ -332,7 +514,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* ---- Pending Review (Milestone 2) ---- */}
-      <div className="card section-gap">
+      <div className="card section-gap" id="pending-review">
         <h2 className="section-title">🕓 {t("pending_reviews_title")} ({pendingReviews.length})</h2>
         <table className="data-table">
           <thead>
@@ -385,7 +567,7 @@ export default function AdminDashboardPage() {
         </table>
       </div>
 
-      <div className="card section-gap">
+      <div className="card section-gap" id="configure-exam">
         <h2 className="section-title">{t("configure_exam_title")}</h2>
 
         {error && <div className="error-text">{error}</div>}

@@ -228,6 +228,23 @@ export default function ExaminerDashboardPage() {
         </div>
       </div>
 
+      <div className="hero-banner">
+        <p className="hero-eyebrow">{t("role_examiner")} Dashboard</p>
+        <h1>{t("welcome")}, {user.name} 👋</h1>
+        <p>Here&apos;s what&apos;s happening with your exams today.</p>
+        <div className="hero-actions">
+          <button
+            className="btn-primary"
+            onClick={() => document.getElementById("add-question")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            + {t("add_question_btn")}
+          </button>
+          <button className="btn-secondary" onClick={() => router.push("/examiner/grading")}>
+            Grading Queue
+          </button>
+        </div>
+      </div>
+
       <div className="card">
         <p>{message}</p>
       </div>
@@ -250,29 +267,156 @@ export default function ExaminerDashboardPage() {
         </div>
 
         <div className="stat-card">
+          <div className="stat-icon stat-icon-amber">🕓</div>
+          <div>
+            <div className="stat-label">Pending Grading</div>
+            <div className="stat-value">{pendingReviews.length}</div>
+            <div className="stat-sub">Needs your review</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
           <div className="stat-icon stat-icon-green">📈</div>
           <div>
             <div className="stat-label">{t("my_contribution")}</div>
             <div className="stat-value">{stats ? `${contribution}%` : "—"}</div>
           </div>
         </div>
-
-        <div className="stat-card">
-          <div className="stat-icon stat-icon-amber">🎯</div>
-          <div>
-            <div className="stat-label">{t("difficulty_breakdown")}</div>
-            <div className="stat-value" style={{ fontSize: "16px" }}>
-              <span style={{ color: "#059669" }}>{easyCount}E</span>
-              {" / "}
-              <span style={{ color: "#d97706" }}>{mediumCount}M</span>
-              {" / "}
-              <span style={{ color: "#dc2626" }}>{hardCount}H</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="card section-gap">
+        <p className="quick-access-title">Quick Access</p>
+        <div className="quick-access-grid">
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("add-question")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-blue">❓</div>
+            <div>
+              <div className="quick-access-title-text">Question Bank</div>
+              <div className="quick-access-desc">Add and manage questions</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("live-now")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-red">📡</div>
+            <div>
+              <div className="quick-access-title-text">{t("live_now")}</div>
+              <div className="quick-access-desc">Monitor students taking exams</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a
+            className="quick-access-card"
+            onClick={() => document.getElementById("pending-review")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <div className="stat-icon stat-icon-amber">🕓</div>
+            <div>
+              <div className="quick-access-title-text">{t("pending_reviews_title")}</div>
+              <div className="quick-access-desc">Approve or reject submissions</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+          <a className="quick-access-card" onClick={() => router.push("/examiner/grading")}>
+            <div className="stat-icon stat-icon-purple">🗂️</div>
+            <div>
+              <div className="quick-access-title-text">Grading Queue</div>
+              <div className="quick-access-desc">Review subjective answers</div>
+            </div>
+            <span className="quick-access-arrow">›</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="overview-grid section-gap">
+        <div className="card">
+          <h2 className="section-title">Question Bank Overview</h2>
+          {(() => {
+            const bySubject = {};
+            questions.forEach((q) => {
+              bySubject[q.subject] = (bySubject[q.subject] || 0) + 1;
+            });
+            const subjectRows = Object.entries(bySubject).sort((a, b) => b[1] - a[1]);
+            const maxCount = subjectRows.length ? subjectRows[0][1] : 1;
+            const barColors = ["#7c3aed", "#0ea5e9", "#ec4899", "#f59e0b", "#10b981", "#6366f1"];
+            const maxDiff = Math.max(easyCount, mediumCount, hardCount, 1);
+
+            return (
+              <>
+                <div className="mini-stat-row">
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Easy</div>
+                    <div className="mini-stat-value">{easyCount}</div>
+                  </div>
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Medium</div>
+                    <div className="mini-stat-value">{mediumCount}</div>
+                  </div>
+                  <div className="mini-stat-box">
+                    <div className="mini-stat-label">Hard</div>
+                    <div className="mini-stat-value">{hardCount}</div>
+                  </div>
+                </div>
+
+                {subjectRows.length > 0 && (
+                  <>
+                    <div className="mini-stat-label" style={{ marginBottom: "10px" }}>Questions by subject</div>
+                    {subjectRows.map(([subject, count], i) => (
+                      <div className="bar-row" key={subject}>
+                        <div className="bar-row-label">{subject}</div>
+                        <div className="bar-track">
+                          <div
+                            className="bar-fill"
+                            style={{
+                              width: `${(count / maxCount) * 100}%`,
+                              background: barColors[i % barColors.length],
+                            }}
+                          />
+                        </div>
+                        <div className="bar-row-count">{count}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {subjectRows.length === 0 && (
+                  <p style={{ color: "#9ca3af", fontSize: "13px" }}>{t("no_questions_yet")}</p>
+                )}
+              </>
+            );
+          })()}
+        </div>
+
+        <div className="card">
+          <div className="section-title-row">
+            <h2 className="section-title">Needs Your Review</h2>
+            <button className="link-btn" onClick={() => document.getElementById("pending-review")?.scrollIntoView({ behavior: "smooth" })}>
+              View all
+            </button>
+          </div>
+          {pendingReviews.slice(0, 6).map((s) => (
+            <div className="submission-row" key={s.session_id}>
+              <div>
+                <div className="student-name">{s.student_name}</div>
+              </div>
+              <div>
+                <div>{s.exam_title}</div>
+              </div>
+              <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                {s.end_time ? new Date(s.end_time).toLocaleString() : "—"}
+              </div>
+              <span className="pill pill-amber">Pending</span>
+            </div>
+          ))}
+          {pendingReviews.length === 0 && (
+            <p style={{ color: "#9ca3af", fontSize: "13px" }}>{t("no_pending_reviews")}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card section-gap" id="live-now">
         <h2 className="section-title">🔴 {t("live_now")} ({liveSessions.length})</h2>
         {reviewError && <div className="error-text">{reviewError}</div>}
         <table className="data-table">
@@ -306,7 +450,7 @@ export default function ExaminerDashboardPage() {
         </table>
       </div>
 
-      <div className="card section-gap">
+      <div className="card section-gap" id="pending-review">
         <h2 className="section-title">🕓 {t("pending_reviews_title")} ({pendingReviews.length})</h2>
         <table className="data-table">
           <thead>
@@ -359,7 +503,7 @@ export default function ExaminerDashboardPage() {
         </table>
       </div>
 
-      <div className="card section-gap">
+      <div className="card section-gap" id="add-question">
         <h2 className="section-title">{t("add_question_title")}</h2>
 
         {error && <div className="error-text">{error}</div>}
